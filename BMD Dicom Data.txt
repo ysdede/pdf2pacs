@@ -1,0 +1,42 @@
+0002,0016	SourceApplicationEntityTitle
+0002,0100	PrivateInformationCreatorUID
+0008,0050	AccessionNumber
+0008,0060	Modality	OT
+0008,0020	StudyDate	20160406
+0008,0030	StudyTime	151346
+0008,0090	ReferringPhysiciansName
+0008,1030	StudyDescription
+0008,103E	SeriesDescription	Paper Series
+0008,0016	SOPClassUID	1.2.840.10008.5.1.4.1.1.7
+0008,0005	SpecificCharacterSet	ISO_IR 100
+0008,0064	ConversionType	WSD
+0008,0021	SeriesDate	20160406
+0008,0022	AcquistionDate	20160406
+0008,0023	Contentdate	20160406
+0008,0031	SeriesTime	151346
+0008,0032	AcquistionTime	151346
+0008,0033	ContentTime	223130
+0008,1070	OperatorsName
+0008,0070	Manufacturer
+0008,1010	StationName
+0008,1090	ManufacturersModelName
+0008,0080	InstitutionName
+0008,0081	InstitutionAddress
+0008,1040	InstitutionDepartmentName
+0010,0010	PatientName
+0010,0020	PatientID
+0010,0030	PatientBirthDate	19901106
+0010,0040	PatientSex	F
+0010,1010	PatientAge	025Y
+0018,1000	DeviceSerialNumber
+0018,1016	SecondaryCaptureDeviceManufacturer
+0018,1018	SecondaryCaptureDeviceModel
+0018,1019	SecondaryCaptureDeviceSoftwareVersion
+0020,000D	StudyInstanceUID	1.2.826.0.1.3680043.2.1635.1.11.230102130449
+0020,0010	StudyID
+0020,0011	SeriesNumber
+0020,0013	InstanceNumber
+0020,000E	SeriesInstanceUID	1.2.826.0.1.3680043.2.1635.1.1.230102130449
+0040,0244	PerformedProcedureStepStartDate	20160406
+0040,0245	PerformedProcedureStepStartTime	151346
+

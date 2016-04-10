@@ -1,0 +1,17 @@
+pdf2dcm.exe +pn "doe, jane" +pi "123456" +ps F sample.pdf sample.dcm
+
+"C:\Program Files\ImageMagick-6.9.3-7-portable-Q16-x86\convert.exe" -density 300 "C:\Documents and Settings\1\Desktop\projeler\bmaReport\HILBERT.pdf" HILBERT/HILBERT%04d.jpg
+"C:\Program Files\ImageMagick-6.9.3-7-portable-Q16-x86\convert.exe" -density 150 "C:\Documents and Settings\1\Desktop\projeler\bmaReport\sample.pdf" SAMPLE/page%02d.jpg
+
+img2dcm -i JPEG -l1 --do-checks +i1 +i2 HILBERT/HILBERT0002.jpg HILBERT/hilbert0002.dcm
+
+ python pdf2txt.py sample.pdf > d.txt
+
+dcmdump HILBERT/hilbert0002.dcm > HILBERT\hilbert0002.dataset
+
+img2dcm -i JPEG -l1 --do-checks +i1 +i2 -df HILBERT/test.dataset HILBERT/HILBERT0003.jpg HILBERT/hilbert0003.dcm
+
+img2dcm -i JPEG -l1 --do-checks +i1 +i2 -ll info HILBERT/HILBERT0003.jpg HILBERT/hilbert0003.dcm -k 0010,0010="Doe, Jane"
+
+img2dcm -i JPEG -l1 --do-checks +i1 +i2 -ll info HILBERT/HILBERT0000.jpg HILBERT/hilbert0000.dcm -k 0010,0010="Doe, Jane" -k 0010,1010="025Y" -k 0008,0060="OT" -k 0008,0021="20160407" -k 0010,0020="PatID023456" -k 0010,0040="F"
+
