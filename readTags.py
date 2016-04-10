@@ -23,7 +23,8 @@ def getPatSex(str):
     return str[:1]
 
 def getPatName(str):
-    return str.replace(', ', '^')
+    name = str.replace(', ', '^')
+    return name.replace(' ', '^')
 
 def getPatID(str):
     return str

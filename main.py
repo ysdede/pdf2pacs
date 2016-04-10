@@ -79,11 +79,46 @@ def getSHA1(fileName):
 
 def pdf2Jpeg(infile, outfile):
     folder = 'Temp/{}'.format(outfile)
-    os.mkdir(folder, 0755)
+    if not os.path.exists(folder):
+        os.mkdir(folder, 0755)
     command = """"Util/ImageMagic/convert.exe" -density 150 {} {}/Page%02d.jpg""".format(infile, folder)
     print (command)
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output, error = process.communicate()
+
+
+def createDicom(fileStamp, tagFile, DICOM, PACS, TAGS_SINGLE):
+    jpegPath = 'Temp/{}/'.format(fileStamp)
+    firstPage = True
+    files = next(os.walk(jpegPath))[2]
+    if files:
+        print('JPEG dosyalar bulundu:')
+        for file in files:
+            if file.endswith('jpg'):
+                print file
+                tagData = readTags.readTagFile(tagFile)
+                patName = readTags.getPatName(tagData[TAGS_SINGLE['PatName']])
+                patID = readTags.getPatID(tagData[TAGS_SINGLE['PatID']])
+                patSex = readTags.getPatSex(tagData[TAGS_SINGLE['PatSex']])
+                patAge = readTags.getPatAge(tagData[TAGS_SINGLE['PatAge']], ' ')
+                procedure = readTags.getProcedure(tagData[TAGS_SINGLE['Procedure']],TAGS_SINGLE['ProcExamSplitter'])
+                examDate, examTime = readTags.getDicomDateTime(tagData[TAGS_SINGLE['ExamDate']],TAGS_SINGLE['ProcExamSplitter'])
+
+                img2dcmCommand = \
+'Util/dcmtk/bin/img2dcm -i JPEG -l1 --do-checks +i1 +i2 -ll info {}{} {}{}.dcm -k 0010,0010="{}" \
+-k 0010,1010="{}" -k 0008,0060="{}" -k 0008,0021="{}" -k 0008,0022="{}" -k 0008,0023="{}" \
+-k 0010,0020="{}" -k 0010,0040="{}" -k 0008,0016="{}" -k 0008,0020="{}" -k 0008,0030="{}"  \
+-k 0008,1030="{}" -k 0008,103E="{}" -k 0008,0005="{}" -k 0008,0031="{}" -k 0008,0032="{}" \
+-k 0008,0033="{}" -k 0008,0070="{}" -k 0008,1090="{}" -k 0008,0080="{}" -k 0008,0081="{}" \
+-k 0008,1040="{}" -k 0018,1000="{}" -k 0018,1016="{}" -k 0018,1018="{}" -k 0018,1019="{}"'.format(\
+                    jpegPath, file, jpegPath, file, patName, patAge, DICOM['Modality'], examDate, examDate, examDate, patID, patSex, \
+                    DICOM['SOPClassUID'], examDate, examTime, procedure, DICOM['SeriesDescription'], DICOM['CharacterSet'], \
+                    examTime, examTime, examTime, DICOM['Manufacturer'], DICOM['ManufacturersModelName'], DICOM['InstitutionName'],\
+                    DICOM['InstitutionAddress'], DICOM['DepartmentName'], DICOM['DeviceSerialNumber'],\
+                    DICOM['SecondaryCaptureDeviceManufacturer'], DICOM['SecondaryCaptureDeviceModel'], \
+                    DICOM['SecondaryCaptureDeviceSoftwareVersion'])
+
+                print img2dcmCommand
 
 
 logDosyaAdi = 'Pdf2Pacs.log'
@@ -98,31 +133,33 @@ print '****************'
 print TAGS_SINGLE
 
 while (True):
-    '''str = 'AP Spine on: 1/1/2005 12:23 AM'
-    splitter = ' on: '
-    dicomExamDate, dicomExamTime = readTags.getDicomDateTime(str, splitter)
-    print dicomExamDate, dicomExamTime
-    print readTags.getProcedure(str, splitter)
-    str = '72 years'
-    splitter = ' '
-    print readTags.getPatAge(str, splitter)
-    str = 'test, testqwe23'
-    print readTags.getPatName(str)'''
-
     files = next(os.walk('rapor/'))[2]
     if files:
         print('Dosyalar bulundu'),
         for file in files:
             if file.endswith('pdf'):
-                print ', {}'.format(file)
-                fileStamp = dt.datetime.now().strftime('%d%m%Y%H%M%S%f')
+                origFile = 'rapor/{}'.format(file)
+                print ': {}, '.format(origFile)
+                fileStamp = getSHA1(origFile)
                 tagFile = 'Temp/{}.tags'.format(fileStamp)
-                # print('dst: {}').format(backlogFile)
-                backlogFile = "backlog/{}".format(fileStamp)
-                file2 = 'rapor/{}'.format(file)
-                pdf2txt3.extTxt(file2, tagFile)
-                pdf2Jpeg(file2, fileStamp)
-                # shutil.copyfile(file, backlogFile)
+                backlogFile = "backlog/{}.pdf".format(fileStamp)
+
+                if not os.path.isfile(backlogFile):
+                    shutil.copyfile(file, backlogFile)
+                    print 'Backlog kopyalandý: {}'.format(backlogFile)
+                else: print 'Dosya Backlogda mevcut: {}'.format(backlogFile)
+
+                pdf2txt3.extTxt(origFile, tagFile)
+                pdf2Jpeg(backlogFile, fileStamp)
+                createDicom(fileStamp, tagFile,DICOM, PACS, TAGS_SINGLE)
+
+
+                if os.path.isfile(origFile):
+                    try:
+                        os.remove(origFile)
+                    except OSError, e:
+                        print ("Error: %s - %s." % (e.filename, e.strerror))
+
     else:
         print('Yeni dosya yok')
-    sleep(10)
+    sleep(20)
