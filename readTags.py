@@ -1,4 +1,5 @@
-# -*- coding: cp1254 -*-
+# -*- coding: utf-8 -*-
+
 from datetime import date, datetime
 
 def readTagFile(file):
@@ -34,5 +35,5 @@ def getPatAge(str, splitter):
     age = str[:index]
     yearMonthorDays =  str[index+1:index+2]
     dicomAge = '00' + age + yearMonthorDays.upper()
-    return dicomAge[-4:] # Dicom standardı gereği dört basamak döndür
+    return dicomAge[-4:] # Dicom standardÄ± gereÄŸi dÃ¶rt basamak dÃ¶ndÃ¼r
 
