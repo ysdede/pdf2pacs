@@ -1,4 +1,4 @@
-# -*- coding: cp1254 -*-
+# -*- coding: utf-8 -*-
 
 from __future__ import division
 import sys
@@ -8,19 +8,19 @@ try:
     import datetime as dt
     from datetime import date, datetime, timedelta
     import time
-    import pdf2txt3, readTags
+    import pdf2txt3, readTags, dicomtk
     from time import sleep
     import os, ConfigParser, subprocess
     import shutil, errno
     import subprocess, logging
     import hashlib
 except Exception as e:
-    print ('Modül yüklenemedi.')
+    print ('ModÃ¼l yÃ¼klenemedi.')
     sys.exit(2)
 
 
 def getsettings(ayar_dosyasi):
-    logging.info('Ayar dosyasý: %s', ayar_dosyasi)
+    logging.info('Ayar dosyasÄ±: %s', ayar_dosyasi)
     config = ConfigParser.RawConfigParser()
     config.read(ayar_dosyasi)
     DICOM, PACS, TAGS_SINGLE = dict(), dict(), dict()
@@ -48,6 +48,7 @@ def getsettings(ayar_dosyasi):
     PACS['Port'] = config.get('PACS', 'Port')
     PACS['AET'] = config.get('PACS', 'AET')
     PACS['AEC'] = config.get('PACS', 'AEC')
+    PACS['ScuParams'] = config.get('PACS', 'ScuParams')
     #
     TAGS_SINGLE['PatSex'] = config.getint('TAGS_SINGLE', 'PatSex')
     TAGS_SINGLE['PatName'] = config.getint('TAGS_SINGLE', 'PatName')
@@ -87,79 +88,51 @@ def pdf2Jpeg(infile, outfile):
     output, error = process.communicate()
 
 
-def createDicom(fileStamp, tagFile, DICOM, PACS, TAGS_SINGLE):
-    jpegPath = 'Temp/{}/'.format(fileStamp)
-    firstPage = True
-    files = next(os.walk(jpegPath))[2]
-    if files:
-        print('JPEG dosyalar bulundu:')
-        for file in files:
-            if file.endswith('jpg'):
-                print file
-                tagData = readTags.readTagFile(tagFile)
-                patName = readTags.getPatName(tagData[TAGS_SINGLE['PatName']])
-                patID = readTags.getPatID(tagData[TAGS_SINGLE['PatID']])
-                patSex = readTags.getPatSex(tagData[TAGS_SINGLE['PatSex']])
-                patAge = readTags.getPatAge(tagData[TAGS_SINGLE['PatAge']], ' ')
-                procedure = readTags.getProcedure(tagData[TAGS_SINGLE['Procedure']],TAGS_SINGLE['ProcExamSplitter'])
-                examDate, examTime = readTags.getDicomDateTime(tagData[TAGS_SINGLE['ExamDate']],TAGS_SINGLE['ProcExamSplitter'])
+def process(file):
+    origFile = 'rapor/{}'.format(file)
+    print ': {}, '.format(origFile)
+    fileStamp = getSHA1(origFile)
+    tagFile = 'Temp/{}.tags'.format(fileStamp)
+    backlogFile = "backlog/{}.pdf".format(fileStamp)
 
-                img2dcmCommand = \
-'Util/dcmtk/bin/img2dcm -i JPEG -l1 --do-checks +i1 +i2 -ll info {}{} {}{}.dcm -k 0010,0010="{}" \
--k 0010,1010="{}" -k 0008,0060="{}" -k 0008,0021="{}" -k 0008,0022="{}" -k 0008,0023="{}" \
--k 0010,0020="{}" -k 0010,0040="{}" -k 0008,0016="{}" -k 0008,0020="{}" -k 0008,0030="{}"  \
--k 0008,1030="{}" -k 0008,103E="{}" -k 0008,0005="{}" -k 0008,0031="{}" -k 0008,0032="{}" \
--k 0008,0033="{}" -k 0008,0070="{}" -k 0008,1090="{}" -k 0008,0080="{}" -k 0008,0081="{}" \
--k 0008,1040="{}" -k 0018,1000="{}" -k 0018,1016="{}" -k 0018,1018="{}" -k 0018,1019="{}"'.format(\
-                    jpegPath, file, jpegPath, file, patName, patAge, DICOM['Modality'], examDate, examDate, examDate, patID, patSex, \
-                    DICOM['SOPClassUID'], examDate, examTime, procedure, DICOM['SeriesDescription'], DICOM['CharacterSet'], \
-                    examTime, examTime, examTime, DICOM['Manufacturer'], DICOM['ManufacturersModelName'], DICOM['InstitutionName'],\
-                    DICOM['InstitutionAddress'], DICOM['DepartmentName'], DICOM['DeviceSerialNumber'],\
-                    DICOM['SecondaryCaptureDeviceManufacturer'], DICOM['SecondaryCaptureDeviceModel'], \
-                    DICOM['SecondaryCaptureDeviceSoftwareVersion'])
+    if not os.path.isfile(backlogFile):
+        shutil.copyfile(file, backlogFile)
+        print 'Backlog kopyalandÄ±: {}'.format(backlogFile)
+    else:
+        print 'Dosya Backlogda mevcut: {}'.format(backlogFile)
 
-                print img2dcmCommand
+    pdf2txt3.extTxt(origFile, tagFile)
+    pdf2Jpeg(backlogFile, fileStamp)
+    error = dicomtk.createDicom(fileStamp, tagFile, DICOM, TAGS_SINGLE)
+    if error == "":
+        print "Dicom object created"
+    else:
+        print(error)
+    return fileStamp
 
+def delorigfile(file):
+    origFile = 'rapor/{}'.format(file)
+    if os.path.isfile(origFile):
+        try:
+            os.remove(origFile)
+        except OSError as e:
+            print ("Error: %s - %s." % (e.filename, e.strerror))
 
 logDosyaAdi = 'Pdf2Pacs.log'
 logging.basicConfig(filename=logDosyaAdi, level=logging.DEBUG)
-logging.info('Çalýþma Zamaný: %s', dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+logging.info('Ã‡alÄ±ÅŸma ZamanÄ±: %s', dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
 
 DICOM, PACS, TAGS_SINGLE = getsettings('Settings.ini')
-print DICOM
-print '****************'
-print PACS
-print '****************'
-print TAGS_SINGLE
 
-while (True):
+while True:
     files = next(os.walk('rapor/'))[2]
     if files:
-        print('Dosyalar bulundu'),
         for file in files:
             if file.endswith('pdf'):
-                origFile = 'rapor/{}'.format(file)
-                print ': {}, '.format(origFile)
-                fileStamp = getSHA1(origFile)
-                tagFile = 'Temp/{}.tags'.format(fileStamp)
-                backlogFile = "backlog/{}.pdf".format(fileStamp)
-
-                if not os.path.isfile(backlogFile):
-                    shutil.copyfile(file, backlogFile)
-                    print 'Backlog kopyalandý: {}'.format(backlogFile)
-                else: print 'Dosya Backlogda mevcut: {}'.format(backlogFile)
-
-                pdf2txt3.extTxt(origFile, tagFile)
-                pdf2Jpeg(backlogFile, fileStamp)
-                createDicom(fileStamp, tagFile,DICOM, PACS, TAGS_SINGLE)
-
-
-                if os.path.isfile(origFile):
-                    try:
-                        os.remove(origFile)
-                    except OSError, e:
-                        print ("Error: %s - %s." % (e.filename, e.strerror))
-
+                print('Rapor dosyasÄ± bulundu'),
+                fileStamp = process(file)
+                dicomtk.sendtopacs(fileStamp, PACS, TAGS_SINGLE)
+                delorigfile(file)
     else:
         print('Yeni dosya yok')
-    sleep(20)
+    sleep(10)
