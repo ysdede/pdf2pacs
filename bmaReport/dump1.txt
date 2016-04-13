@@ -1,0 +1,13 @@
+<dict size="5">
+<key>ViewerPreferences</key>
+<value><dict size="0">
+</dict></value>
+<key>PageMode</key>
+<value><literal>UseNone</literal></value>
+<key>Type</key>
+<value><literal>Catalog</literal></value>
+<key>Pages</key>
+<value><ref id="2" /></value>
+<key>PageLayout</key>
+<value><literal>SinglePage</literal></value>
+</dict>
