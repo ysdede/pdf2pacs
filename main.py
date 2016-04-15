@@ -79,21 +79,21 @@ def getSHA1(fileName):
 
 
 def pdf2Jpeg(infile, outfile):
-    folder = 'Temp/{}'.format(outfile)
+    folder = '{}/{}'.format(tempFolder, outfile)
     if not os.path.exists(folder):
         os.mkdir(folder, 0755)
-    command = """"Util/ImageMagic/convert.exe" -density 150 {} {}/Page%02d.jpg""".format(infile, folder)
+    command = """"{}/convert.exe" -density {} {} {}/Page%02d.jpg""".format(imageMagickPath, jpegDensity, infile, folder)
     print (command)
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output, error = process.communicate()
 
 
 def process(file):
-    origFile = 'rapor/{}'.format(file)
+    origFile = '{}/{}'.format(captureFolder, file)
     print ': {}, '.format(origFile)
     fileStamp = getSHA1(origFile)
-    tagFile = 'Temp/{}.tags'.format(fileStamp)
-    backlogFile = "backlog/{}.pdf".format(fileStamp)
+    tagFile = '{}/{}.tags'.format(tempFolder, fileStamp)
+    backlogFile = "{}/{}.pdf".format(backlogFolder, fileStamp)
 
     if not os.path.isfile(backlogFile):
         shutil.copyfile(file, backlogFile)
@@ -103,7 +103,7 @@ def process(file):
 
     pdf2txt3.extTxt(origFile, tagFile)
     pdf2Jpeg(backlogFile, fileStamp)
-    error = dicomtk.createDicom(fileStamp, tagFile, DICOM, TAGS_SINGLE)
+    error = dicomtk.createDicom(tempFolder, fileStamp, tagFile, DICOM, TAGS_SINGLE)
     if error == "":
         print "Dicom object created"
     else:
@@ -111,28 +111,43 @@ def process(file):
     return fileStamp
 
 def delorigfile(file):
-    origFile = 'rapor/{}'.format(file)
+    origFile = '{}/{}'.format(captureFolder, file)
     if os.path.isfile(origFile):
         try:
             os.remove(origFile)
         except OSError as e:
             print ("Error: %s - %s." % (e.filename, e.strerror))
 
+
+root = (os.path.dirname(sys.argv[0]))
+print (root)
+
 logDosyaAdi = 'Pdf2Pacs.log'
 logging.basicConfig(filename=logDosyaAdi, level=logging.DEBUG)
 logging.info('Çalışma Zamanı: %s', dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
 
+captureFolder = root + '/rapor'
+tempFolder = root + '/Temp'
+backlogFolder = root + '/backlog'
+imageMagickPath = root + '/Util/ImageMagic'
+dcmtk = root + '/Util/dcmtk/bin'
+jpegDensity = '150'
+
 DICOM, PACS, TAGS_SINGLE = getsettings('Settings.ini')
 
+STUDY = dict()
+
 while True:
-    files = next(os.walk('rapor/'))[2]
+    files = next(os.walk(captureFolder + '/'))[2]
     if files:
         for file in files:
             if file.endswith('pdf'):
                 print('Rapor dosyası bulundu'),
                 fileStamp = process(file)
-                dicomtk.sendtopacs(fileStamp, PACS, TAGS_SINGLE)
+                dicomtk.decompressJpegs(dcmtk, tempFolder, fileStamp)
+                dicomtk.sendtopacs(root, dcmtk, tempFolder, fileStamp, PACS, TAGS_SINGLE)
                 delorigfile(file)
     else:
         print('Yeni dosya yok')
     sleep(10)
+

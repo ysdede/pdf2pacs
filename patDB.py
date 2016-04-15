@@ -8,7 +8,7 @@ def createStudyTable():
     tableStudy = db.table('Study')
 
     tableStudy.insert({'patName': 'Hasta adı', 'patID': '3333', 'patSex':'Cinsiyet', 'patAge':'Yaş',
-                   'patBirthdate':'Doğum Tarihi', 'procedure':'Protokol', 'examDate':'Çekim Tarihi',
+                   'patBirthdate':'Doğum Tarihi', 'procedure':'Protokol', 'examDate':'Çekim Tarihi', 'origFile':'',
                    'importDatetime':'Yakalama zamanı', 'studyID':'tetkikNo', 'fileSHA':'1234567890', 'modality':'OT',
                    'operatorName':'Teknisyen', 'refPhys':'Gönderen Doktor', 'importTime':'11/04/2016 11:21:00',
                    'sentToPacs':'False', 'senTime':'', 'retries':'0'})
@@ -35,8 +35,11 @@ def testQuery():
     print res['examDate']
     db.close()
 
-print exist('123456789')
-testQuery()
+
+createStudyTable()
+#print exist('123456789') db boşşa hata veriyor, yakala
+#testQuery()
+
 
 #createStudyTable()
 #uu = u.decode('utf8')

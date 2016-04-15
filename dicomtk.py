@@ -5,8 +5,8 @@ import readTags
 import subprocess
 
 
-def createDicom(fileStamp, tagFile, DICOM, TAGS_SINGLE):
-    jpegPath = 'Temp/{}/'.format(fileStamp)
+def createDicom(tempFolder, fileStamp, tagFile, DICOM, TAGS_SINGLE):
+    jpegPath = '{}/{}/'.format(tempFolder, fileStamp)
     firstPage = True
     files = next(os.walk(jpegPath))[2]
     if files:
@@ -43,10 +43,29 @@ def createDicom(fileStamp, tagFile, DICOM, TAGS_SINGLE):
                 print ('error: %s', error)
                 return error
 
-def sendtopacs(fileStamp, PACS, TAGS_SINGLE):
-    storescucommand = '"Util/dcmtk/bin/storescu.exe" -aet {} {} -aec {} {} "Temp/{}" {}'\
-    .format(PACS['AET'], PACS['Address'], PACS['AEC'], PACS['Port'], fileStamp, PACS['ScuParams'])
+def decompressJpegs(dcmtk, tempFolder, fileStamp):
+    # dcmdjpeg -f Temp/c255e9d518c1896b26115e696a6354bda163d486/Page00.jpg.dcm Temp/c255e9d518c1896b26115e696a6354bda163d486/dumpPage00.dcm
+    dicomPath = '{}/{}/'.format(tempFolder, fileStamp)
+    firstPage = True
+    files = next(os.walk(dicomPath))[2]
+    if files:
+        print('Sıkıştırılmış dicom dosyaları bulundu: '),
+        for file in files:
+            if file.endswith('jpg.dcm'):
+                print file
+                dcmdjpgcommand = '"{}/dcmdjpeg.exe" -f {}{} {}dump{}'.format(dcmtk, dicomPath, file, dicomPath, file)
+                print (dcmdjpgcommand)
+                process = subprocess.Popen(dcmdjpgcommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                output, error = process.communicate()
+                print ('output: %s', output)
+                print ('error: %s', error)
+                return error
+
+def sendtopacs(root, dcmtk, tempFolder, fileStamp, PACS, TAGS_SINGLE):
+    storescucommand = '"{}/storescu.exe" -aet {} {} -aec {} {} +sd "{}/{}/*.dcm" +sp "dump*.jpg.dcm" {}'\
+    .format(dcmtk, PACS['AET'], PACS['Address'], PACS['AEC'], PACS['Port'], tempFolder, fileStamp, PACS['ScuParams'])
     print storescucommand
+    # storescucommand.replace('/', '\\')
     process = subprocess.Popen(storescucommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output, error = process.communicate()
     print ('output: %s', output)
