@@ -1,0 +1,1 @@
+Util\dcmtk\bin\storescp.exe -aet testPacs 104  -dhl -sp -ll info -od dicomStore
