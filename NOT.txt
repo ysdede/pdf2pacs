@@ -16,10 +16,6 @@ img2dcm -i JPEG -l1 --do-checks +i1 +i2 -ll info HILBERT/HILBERT0003.jpg HILBERT
 img2dcm -i JPEG -l1 --do-checks +i1 +i2 -ll info HILBERT/HILBERT0000.jpg HILBERT/hilbert0000.dcm -k 0010,0010="Doe, Jane" -k 0010,1010="025Y" -k 0008,0060="OT" -k 0008,0021="20160407" -k 0010,0020="PatID023456" -k 0010,0040="F"
 
 
-PathDicom = "./MyHead/"
-lstFilesDCM = []  # create an empty list
-for dirName, subdirList, fileList in os.walk(PathDicom):
-    for filename in fileList:
-        if ".dcm" in filename.lower():  # check whether the file's DICOM
-            lstFilesDCM.append(os.path.join(dirName,filename))
-
+ghostscript kurulumu şart
+add ghostscript\bin to PATH
+gswin32c.exe -dNOPAUSE -sDEVICE=jpeg -r150 -dJPEGQ=90 -sOutputFile=foo-%03d.jpg sample.pdf -dBATCH

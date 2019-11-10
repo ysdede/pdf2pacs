@@ -3,17 +3,21 @@
 import os
 import readTags
 import subprocess
-
-
+import colors
+DEBUG = False
 def createDicom(tempFolder, fileStamp, tagFile, DICOM, TAGS_SINGLE):
+    MSG = 'Creating dicom data '
+    print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
+    status = -2
     jpegPath = '{}/{}/'.format(tempFolder, fileStamp)
     firstPage = True
     files = next(os.walk(jpegPath))[2]
     if files:
-        print('JPEG dosyalar bulundu: '),
+        MSG = 'JPEG dosyalar bulundu: '
+        print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC),)
         for file in files:
             if file.endswith('jpg'):
-                print file
+                print('%s%s%s' % (colors.BOLD, file, colors.ENDC))
                 tagData = readTags.readTagFile(tagFile)
                 patName = readTags.getPatName(tagData[TAGS_SINGLE['PatName']])
                 patID = readTags.getPatID(tagData[TAGS_SINGLE['PatID']])
@@ -36,38 +40,64 @@ def createDicom(tempFolder, fileStamp, tagFile, DICOM, TAGS_SINGLE):
                     DICOM['SecondaryCaptureDeviceManufacturer'], DICOM['SecondaryCaptureDeviceModel'], \
                     DICOM['SecondaryCaptureDeviceSoftwareVersion'])
 
-                print img2dcmCommand
+                #print img2dcmCommand
                 process = subprocess.Popen(img2dcmCommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                 output, error = process.communicate()
-                print ('output: %s', output)
-                print ('error: %s', error)
-                return error
+                if DEBUG: print ('output: %s', output)
+                status = 0
+    return status
 
 def decompressJpegs(dcmtk, tempFolder, fileStamp):
+    MSG = 'Decompressing JPEG '
+    print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
+    status = -2
     # dcmdjpeg -f Temp/c255e9d518c1896b26115e696a6354bda163d486/Page00.jpg.dcm Temp/c255e9d518c1896b26115e696a6354bda163d486/dumpPage00.dcm
     dicomPath = '{}/{}/'.format(tempFolder, fileStamp)
     firstPage = True
     files = next(os.walk(dicomPath))[2]
     if files:
-        print('Sıkıştırılmış dicom dosyaları bulundu: '),
+        MSG = 'Sıkıştırılmış dicom dosyaları bulundu: '
+        print('%s%s%s' % (colors.BOLD, MSG, colors.ENDC),)
+
         for file in files:
             if file.endswith('jpg.dcm'):
-                print file
+                print('%s%s%s' % (colors.BOLD, file, colors.ENDC))
                 dcmdjpgcommand = '"{}/dcmdjpeg.exe" -f {}{} {}dump{}'.format(dcmtk, dicomPath, file, dicomPath, file)
-                print (dcmdjpgcommand)
+                #print (dcmdjpgcommand)
                 process = subprocess.Popen(dcmdjpgcommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                 output, error = process.communicate()
-                print ('output: %s', output)
-                print ('error: %s', error)
-                return error
+                if DEBUG: print ('output: %s', output)
+                status = 0
+    return status
 
 def sendtopacs(root, dcmtk, tempFolder, fileStamp, PACS, TAGS_SINGLE):
-    storescucommand = '"{}/storescu.exe" -aet {} {} -aec {} {} +sd "{}/{}/*.dcm" +sp "dump*.jpg.dcm" {}'\
-    .format(dcmtk, PACS['AET'], PACS['Address'], PACS['AEC'], PACS['Port'], tempFolder, fileStamp, PACS['ScuParams'])
-    print storescucommand
-    # storescucommand.replace('/', '\\')
-    process = subprocess.Popen(storescucommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    output, error = process.communicate()
-    print ('output: %s', output)
-    print ('error: %s', error)
-    return error
+    MSG = 'Sending dicom data to PACS server {} '.format(PACS['AET'])
+    print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
+    status = -2
+    dimseSuccessMsg = 'DIMSE Status                  : 0x0000: Success'
+    dicomPath = '{}/{}/'.format(tempFolder, fileStamp)
+    firstPage = True
+    files = next(os.walk(dicomPath))[2]
+    if files:
+        print('Dicom dosyaları bulundu: '),
+        for file in files:
+            if file.startswith('dump') and file.endswith('jpg.dcm'):
+                print(file)
+                storescucommand = '"{}/storescu.exe" -aet {} {} -aec {} {} "{}/{}" {}' \
+                    .format(dcmtk, PACS['AET'], PACS['Address'], PACS['AEC'], PACS['Port'],
+                            dicomPath, file, PACS['ScuParams'])
+                #print storescucommand
+                process = subprocess.Popen(storescucommand, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+                output, error = process.communicate()
+                if DEBUG: print(('output: %s', output))
+                if output.find(dimseSuccessMsg) > 0:
+                    MSG = 'Gönderildi: {}'.format(file)
+                    print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
+                    status = 0
+                elif output.find('Failed to establish association') > 0:
+                    MSG = 'Pacs bağlantı hatası...'
+                    print('%s%s%s' % (colors.FAIL, MSG, colors.ENDC))
+                    status = -1
+    return status
+
+

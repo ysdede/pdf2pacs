@@ -1,7 +1,0 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
-u = 'idzie waz waska drózka'
-uu = u.decode('utf8')
-s = uu.encode('cp1250')
-print(s)

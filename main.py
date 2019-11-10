@@ -8,21 +8,22 @@ try:
     import datetime as dt
     from datetime import date, datetime, timedelta
     import time
-    import pdf2txt3, readTags, dicomtk
+    import pdf2txt3, readTags, dicomtk, colors
     from time import sleep
     import os, ConfigParser, subprocess
     import shutil, errno
     import subprocess, logging
     import hashlib
+    import colorama
 except Exception as e:
-    print ('Modül yüklenemedi.')
+    print ('Import error, run: "pip install -r requirements.txt to install missing dependencies."')
     sys.exit(2)
 
 
-def getsettings(ayar_dosyasi):
-    logging.info('Ayar dosyası: %s', ayar_dosyasi)
+def getsettings(settingsFile):
+    logging.info('Settings file: %s', settingsFile)
     config = ConfigParser.RawConfigParser()
-    config.read(ayar_dosyasi)
+    config.read(settingsFile)
     DICOM, PACS, TAGS_SINGLE = dict(), dict(), dict()
     # TAGS_SINGLE = dict()
 
@@ -64,50 +65,55 @@ def getsettings(ayar_dosyasi):
 
 
 def getSHA1(fileName):
-    BUF_SIZE = 65536  # lets read stuff in 64kb chunks!
-    # md5 = hashlib.md5()
+    buffSize = 65536
     sha1 = hashlib.sha1()
 
     with open(fileName, 'rb') as f:
         while True:
-            data = f.read(BUF_SIZE)
+            data = f.read(buffSize)
             if not data:
                 break
-            # md5.update(data)
             sha1.update(data)
     return sha1.hexdigest()
 
 
 def pdf2Jpeg(infile, outfile):
+    status = -2
     folder = '{}/{}'.format(tempFolder, outfile)
     if not os.path.exists(folder):
-        os.mkdir(folder, 0755)
-    command = """"{}/convert.exe" -density {} {} {}/Page%02d.jpg""".format(imageMagickPath, jpegDensity, infile, folder)
+        os.mkdir(folder, 0o0755)
+    
+    command = """gswin32c.exe -dNOPAUSE -sDEVICE=jpeg -r{} -dJPEGQ=95 -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -sOutputFile={}/Page%02d.jpg {} -dBATCH """.format(jpegDensity, folder, infile)
     print (command)
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output, error = process.communicate()
+    print(error)
 
 
 def process(file):
     origFile = '{}/{}'.format(captureFolder, file)
-    print ': {}, '.format(origFile)
+    print(': {}, '.format(origFile))
+
     fileStamp = getSHA1(origFile)
     tagFile = '{}/{}.tags'.format(tempFolder, fileStamp)
     backlogFile = "{}/{}.pdf".format(backlogFolder, fileStamp)
 
     if not os.path.isfile(backlogFile):
         shutil.copyfile(file, backlogFile)
-        print 'Backlog kopyalandı: {}'.format(backlogFile)
+        MSG = 'Backlog kopyalandı: {}'.format(backlogFile)
+        print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
     else:
-        print 'Dosya Backlogda mevcut: {}'.format(backlogFile)
+        MSG = 'Dosya Backlogda mevcut: {}'.format(backlogFile)
+        print('%s%s%s' % (colors.WARNING, MSG, colors.ENDC))
 
     pdf2txt3.extTxt(origFile, tagFile)
     pdf2Jpeg(backlogFile, fileStamp)
     error = dicomtk.createDicom(tempFolder, fileStamp, tagFile, DICOM, TAGS_SINGLE)
     if error == "":
-        print "Dicom object created"
+        MSG = "Dicom object created"
+        print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
     else:
-        print(error)
+        print('%s%s%s' % (colors.FAIL, error, colors.ENDC))
     return fileStamp
 
 def delorigfile(file):
@@ -116,38 +122,50 @@ def delorigfile(file):
         try:
             os.remove(origFile)
         except OSError as e:
-            print ("Error: %s - %s." % (e.filename, e.strerror))
+            MSG = "Error: %s - %s." % (e.filename, e.strerror)
+            print('%s%s%s' % (colors.FAIL, MSG, colors.ENDC))
 
+colorama.init()
 
-root = (os.path.dirname(sys.argv[0]))
-print (root)
+root = os.getcwd()
+
+DEBUG = False
+
+print('%s%s%s' % (colors.OKGREEN, root, colors.ENDC))
 
 logDosyaAdi = 'Pdf2Pacs.log'
 logging.basicConfig(filename=logDosyaAdi, level=logging.DEBUG)
 logging.info('Çalışma Zamanı: %s', dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
 
-captureFolder = root + '/rapor'
-tempFolder = root + '/Temp'
-backlogFolder = root + '/backlog'
-imageMagickPath = root + '/Util/ImageMagic'
-dcmtk = root + '/Util/dcmtk/bin'
+captureFolder = 'rapor'
+tempFolder = 'Temp'
+backlogFolder = 'backlog'
+dcmtk = 'Util/dcmtk/bin'
 jpegDensity = '150'
+print("root: {}".format(root))
+print("capture folder: /{}".format(captureFolder))
+
 
 DICOM, PACS, TAGS_SINGLE = getsettings('Settings.ini')
 
 STUDY = dict()
 
+MSG = 'Waiting for incoming data in folder: /%s' % captureFolder
+print('%s%s%s' % (colors.HEADER, MSG, colors.ENDC))
+
 while True:
     files = next(os.walk(captureFolder + '/'))[2]
+    if DEBUG: print(files)
     if files:
         for file in files:
             if file.endswith('pdf'):
-                print('Rapor dosyası bulundu'),
+                print('%s%s%s' % (colors.BOLD, 'Found new pdf file...', colors.ENDC),)
                 fileStamp = process(file)
+                if DEBUG: print('Created filestamp: %s' % fileStamp)
                 dicomtk.decompressJpegs(dcmtk, tempFolder, fileStamp)
                 dicomtk.sendtopacs(root, dcmtk, tempFolder, fileStamp, PACS, TAGS_SINGLE)
                 delorigfile(file)
     else:
-        print('Yeni dosya yok')
-    sleep(10)
+        print('.'),
+    sleep(5)
 
