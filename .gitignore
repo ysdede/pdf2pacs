@@ -1,7 +1,7 @@
 *.pyc
 *.log
 .idea/
-.idea/
 Temp/
+backlog/
 dicomStore/
 Thumbs.db
