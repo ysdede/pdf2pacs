@@ -27,7 +27,6 @@ def getsettings(settingsFile):
     DICOM, PACS, TAGS_SINGLE = dict(), dict(), dict()
     # TAGS_SINGLE = dict()
 
-
     #
     DICOM['Modality'] = config.get('DICOM', 'Modality')
     DICOM['SeriesDescription'] = config.get('DICOM', 'SeriesDescription')
@@ -92,7 +91,7 @@ def pdf2Jpeg(infile, outfile):
 
 def process(file):
     origFile = '{}/{}'.format(captureFolder, file)
-    print(': {}, '.format(origFile))
+    print(origFile)
 
     fileStamp = getSHA1(origFile)
     tagFile = '{}/{}.tags'.format(tempFolder, fileStamp)
@@ -100,17 +99,17 @@ def process(file):
 
     if not os.path.isfile(backlogFile):
         shutil.copyfile(file, backlogFile)
-        MSG = 'Backlog kopyalandı: {}'.format(backlogFile)
+        MSG = 'Created backlog file: {}'.format(backlogFile)
         print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
     else:
-        MSG = 'Dosya Backlogda mevcut: {}'.format(backlogFile)
+        MSG = 'Skipping, file already exits in backlog: {}'.format(backlogFile)
         print('%s%s%s' % (colors.WARNING, MSG, colors.ENDC))
 
     pdf2txt3.extTxt(origFile, tagFile)
     pdf2Jpeg(backlogFile, fileStamp)
     error = dicomtk.createDicom(tempFolder, fileStamp, tagFile, DICOM, TAGS_SINGLE)
     if error == "":
-        MSG = "Dicom object created"
+        MSG = "Dicom object created..."
         print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
     else:
         print('%s%s%s' % (colors.FAIL, error, colors.ENDC))
@@ -135,15 +134,15 @@ print('%s%s%s' % (colors.OKGREEN, root, colors.ENDC))
 
 logDosyaAdi = 'Pdf2Pacs.log'
 logging.basicConfig(filename=logDosyaAdi, level=logging.DEBUG)
-logging.info('Çalışma Zamanı: %s', dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+logging.info('Timestamp: %s', dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
 
 captureFolder = 'rapor'
 tempFolder = 'Temp'
 backlogFolder = 'backlog'
 dcmtk = 'Util/dcmtk/bin'
 jpegDensity = '150'
-print("root: {}".format(root))
-print("capture folder: /{}".format(captureFolder))
+print("Root: {}".format(root))
+print("Capture folder: /{}".format(captureFolder))
 
 
 DICOM, PACS, TAGS_SINGLE = getsettings('Settings.ini')
@@ -159,7 +158,8 @@ while True:
     if files:
         for file in files:
             if file.endswith('pdf'):
-                print('%s%s%s' % (colors.BOLD, 'Found new pdf file...', colors.ENDC),)
+                MSG = 'Found new pdf file...'
+                print('%s%s%s' % (colors.BOLD, MSG, colors.ENDC))
                 fileStamp = process(file)
                 if DEBUG: print('Created filestamp: %s' % fileStamp)
                 dicomtk.decompressJpegs(dcmtk, tempFolder, fileStamp)

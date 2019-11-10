@@ -2,7 +2,6 @@
 
 from tinydb import TinyDB, where, Query
 
-
 def createStudyTable():
     db = TinyDB('database/db.json')
     tableStudy = db.table('Study')
@@ -13,9 +12,6 @@ def createStudyTable():
                    'operatorName':'Teknisyen', 'refPhys':'Gönderen Doktor', 'importTime':'11/04/2016 11:21:00',
                    'sentToPacs':'False', 'senTime':'', 'retries':'0'})
     db.close()
-#study = Query()
-#pat = tableStudy.search(study.patID == '2222')
-#print pat
 
 def exist(SHA):
     db = TinyDB('database/db.json')
@@ -32,7 +28,7 @@ def testQuery():
     study = Query()
     pat = tableStudy.search(study.fileSHA == '12345')
     res = pat[0]
-    print res['examDate']
+    print(res['examDate'])
     db.close()
 
 
@@ -40,6 +36,4 @@ createStudyTable()
 #print exist('123456789') db boşşa hata veriyor, yakala
 #testQuery()
 
-
 #createStudyTable()
-#uu = u.decode('utf8')

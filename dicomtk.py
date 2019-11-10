@@ -13,8 +13,8 @@ def createDicom(tempFolder, fileStamp, tagFile, DICOM, TAGS_SINGLE):
     firstPage = True
     files = next(os.walk(jpegPath))[2]
     if files:
-        MSG = 'JPEG dosyalar bulundu: '
-        print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC),)
+        MSG = 'Found JPEG images: '
+        print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
         for file in files:
             if file.endswith('jpg'):
                 print('%s%s%s' % (colors.BOLD, file, colors.ENDC))
@@ -56,8 +56,8 @@ def decompressJpegs(dcmtk, tempFolder, fileStamp):
     firstPage = True
     files = next(os.walk(dicomPath))[2]
     if files:
-        MSG = 'Sıkıştırılmış dicom dosyaları bulundu: '
-        print('%s%s%s' % (colors.BOLD, MSG, colors.ENDC),)
+        MSG = 'Found compressed Dicom images: '
+        print('%s%s%s' % (colors.BOLD, MSG, colors.ENDC))
 
         for file in files:
             if file.endswith('jpg.dcm'):
@@ -71,7 +71,7 @@ def decompressJpegs(dcmtk, tempFolder, fileStamp):
     return status
 
 def sendtopacs(root, dcmtk, tempFolder, fileStamp, PACS, TAGS_SINGLE):
-    MSG = 'Sending dicom data to PACS server {} '.format(PACS['AET'])
+    MSG = 'Sending dicom images to PACS {} '.format(PACS['AET'])
     print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
     status = -2
     dimseSuccessMsg = 'DIMSE Status                  : 0x0000: Success'
@@ -79,7 +79,7 @@ def sendtopacs(root, dcmtk, tempFolder, fileStamp, PACS, TAGS_SINGLE):
     firstPage = True
     files = next(os.walk(dicomPath))[2]
     if files:
-        print('Dicom dosyaları bulundu: '),
+        print('Found Dicom images: '),
         for file in files:
             if file.startswith('dump') and file.endswith('jpg.dcm'):
                 print(file)
@@ -91,11 +91,11 @@ def sendtopacs(root, dcmtk, tempFolder, fileStamp, PACS, TAGS_SINGLE):
                 output, error = process.communicate()
                 if DEBUG: print(('output: %s', output))
                 if output.find(dimseSuccessMsg) > 0:
-                    MSG = 'Gönderildi: {}'.format(file)
+                    MSG = 'Sent: {}'.format(file)
                     print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
                     status = 0
                 elif output.find('Failed to establish association') > 0:
-                    MSG = 'Pacs bağlantı hatası...'
+                    MSG = 'PACS server connection failed...'
                     print('%s%s%s' % (colors.FAIL, MSG, colors.ENDC))
                     status = -1
     return status

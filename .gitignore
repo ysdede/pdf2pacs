@@ -1,2 +1,7 @@
 *.pyc
+*.log
+.idea/
+.idea/
+Temp/
+dicomStore/
 Thumbs.db
