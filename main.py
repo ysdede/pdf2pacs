@@ -10,7 +10,7 @@ try:
     import time
     import pdf2txt3, readTags, dicomtk, colors
     from time import sleep
-    import os, ConfigParser, subprocess
+    import os, ConfigParser
     import shutil, errno
     import subprocess, logging
     import hashlib
@@ -82,7 +82,9 @@ def pdf2Jpeg(infile, outfile):
     if not os.path.exists(folder):
         os.mkdir(folder, 0o0755)
     
-    command = """gswin32c.exe -dNOPAUSE -sDEVICE=jpeg -r{} -dJPEGQ=95 -dTextAlphaBits=4 -dGraphicsAlphaBits=4 -sOutputFile={}/Page%02d.jpg {} -dBATCH """.format(jpegDensity, folder, infile)
+    command = """\
+    gswin32c.exe -dNOPAUSE -sDEVICE=jpeg -r{} -dJPEGQ=95 -dTextAlphaBits=4 -dGraphicsAlphaBits=4 \
+    -sOutputFile={}/Page%02d.jpg {} -dBATCH """.format(jpegDensity, folder, infile)
     print (command)
     process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     output, error = process.communicate()
@@ -115,6 +117,7 @@ def process(file):
         print('%s%s%s' % (colors.FAIL, error, colors.ENDC))
     return fileStamp
 
+
 def delorigfile(file):
     origFile = '{}/{}'.format(captureFolder, file)
     if os.path.isfile(origFile):
@@ -123,6 +126,21 @@ def delorigfile(file):
         except OSError as e:
             MSG = "Error: %s - %s." % (e.filename, e.strerror)
             print('%s%s%s' % (colors.FAIL, MSG, colors.ENDC))
+
+
+def createFolders():
+    if not os.path.exists(captureFolder):
+        os.mkdir(captureFolder, 0o0755)
+
+    if not os.path.exists(tempFolder):
+        os.mkdir(tempFolder, 0o0755)
+
+    if not os.path.exists(backlogFolder):
+        os.mkdir(backlogFolder, 0o0755)
+
+    if not os.path.exists(dicomStoreFolder):
+        os.mkdir(dicomStoreFolder, 0o0755)
+
 
 colorama.init()
 
@@ -139,15 +157,19 @@ logging.info('Timestamp: %s', dt.datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
 captureFolder = 'rapor'
 tempFolder = 'Temp'
 backlogFolder = 'backlog'
+dicomStoreFolder = 'dicomStore'
 dcmtk = 'Util/dcmtk/bin'
+
 jpegDensity = '150'
+
 print("Root: {}".format(root))
 print("Capture folder: /{}".format(captureFolder))
-
 
 DICOM, PACS, TAGS_SINGLE = getsettings('Settings.ini')
 
 STUDY = dict()
+
+createFolders()
 
 MSG = 'Waiting for incoming data in folder: /%s' % captureFolder
 print('%s%s%s' % (colors.HEADER, MSG, colors.ENDC))
@@ -168,4 +190,3 @@ while True:
     else:
         print('.'),
     sleep(5)
-
