@@ -1,2 +1,3 @@
 pdfminer==20140328
 tinydb==3.13.0
+colorama==0.4.1
