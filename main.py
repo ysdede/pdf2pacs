@@ -167,7 +167,7 @@ print("Capture folder: /{}".format(captureFolder))
 
 DICOM, PACS, TAGS_SINGLE = getsettings('Settings.ini')
 
-STUDY = dict()
+STUDY = {}
 
 createFolders()
 
