@@ -74,12 +74,12 @@ def sendtopacs(root, dcmtk, tempFolder, fileStamp, PACS, TAGS_SINGLE):
     MSG = 'Sending dicom images to PACS {} '.format(PACS['AET'])
     print('%s%s%s' % (colors.OKGREEN, MSG, colors.ENDC))
     status = -2
-    dimseSuccessMsg = 'DIMSE Status                  : 0x0000: Success'
     dicomPath = '{}/{}/'.format(tempFolder, fileStamp)
     firstPage = True
     files = next(os.walk(dicomPath))[2]
     if files:
         print('Found Dicom images: '),
+        dimseSuccessMsg = 'DIMSE Status                  : 0x0000: Success'
         for file in files:
             if file.startswith('dump') and file.endswith('jpg.dcm'):
                 print(file)

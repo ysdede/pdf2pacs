@@ -53,11 +53,7 @@ def extTxt(fname, outfile):
     outtype = 'text'
     # outfile = 'SAMPLE/Output.tmp'
 
-    if outfile:
-        outfp = file(outfile, 'w')
-    else:
-        outfp = sys.stdout
-
+    outfp = file(outfile, 'w') if outfile else sys.stdout
     outLns = ''
     device = TextConverter(rsrcmgr, outfp, codec=codec, laparams=laparams,
                            imagewriter=imagewriter)
